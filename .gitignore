@@ -1,0 +1,21 @@
+# 构建产物
+backend/target/
+frontend/dist/
+frontend/node_modules/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 运行时产物
+*.log
+logs/
+uploads/temp/
+
+# 本地工作数据
+.workbuddy/
+
+# 系统文件
+Thumbs.db
+.DS_Store

@@ -1,0 +1,89 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: shoping
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/shoping?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+  # Redis 缓存：连接信息全部走环境变量，本地默认 localhost:6379
+  # 超时刻意设短（800ms）：Redis 抖动时快速失败并降级到数据库，不拖垮接口
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 800ms
+      connect-timeout: 800ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 500ms
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
+# 商品图片等静态文件：保存到本地目录，通过 /uploads/** 访问
+app:
+  upload:
+    dir: ./uploads
+    url-prefix: /uploads
+    max-size-mb: 5
+  # 缓存开关与降级策略
+  cache:
+    # 关掉后所有读接口直接回源数据库（本地调试或 Redis 未部署时用）
+    enabled: ${CACHE_ENABLED:true}
+    key-prefix: "${CACHE_KEY_PREFIX:shoping:}"
+    # Redis 异常后熔断多久再重试（秒），期间所有缓存调用直接回源
+    fail-retry-seconds: 30
+
+# 演示顾客账号（普通用户端登录用），仅当密码为空时写入
+demo:
+  seed-enabled: true
+  phone: 13800000000
+  username: user
+  password: 123456
+
+# JWT 令牌：access token 短时效，refresh token 长时效用于无感续期
+jwt:
+  secret: shoping-mall-jwt-secret-key-please-change-me-0123456789
+  expire-hours: 2
+  refresh-expire-days: 14
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.shoping.module.*.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    # 走日志框架，默认 info 级别不打印 SQL；需要看 SQL 时把下面 logging.level 调成 debug
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    # 显式指定，避免启动时探测网卡推算 workerId
+    worker-id: 1
+    datacenter-id: 1
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    root: info
+    com.shoping: info
+    # 想看 SQL 时把 next 行改成 debug（配合 Slf4jImpl）
+    com.shoping.module: info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
