@@ -144,10 +144,36 @@ public class OrderServiceImpl implements OrderService {
 
         // 校验券并预计算优惠金额（先不落库，拿到订单 id 后再绑定）
         BigDecimal discount = computeCouponDiscount(request, total);
+        BigDecimal afterCoupon = total.subtract(discount);
+
+        // 积分抵扣：先校验上限（不超过券后金额的 20%），拿到订单 id 后再原子扣积分。
+        // 积分不足抛异常，@Transactional 会把已扣的 SKU 库存一并回滚。
+        int usePoints = normalizeUsePoints(request.getUsePoints());
+        int pointsDeducted = 0;
+        BigDecimal pointsAmount = BigDecimal.ZERO;
+        if (usePoints > 0) {
+            int maxPoints = afterCoupon.multiply(new BigDecimal("0.20"))
+                    .multiply(new BigDecimal("100")).setScale(0, java.math.RoundingMode.DOWN).intValue();
+            if (usePoints > maxPoints) {
+                throw new BusinessException(ErrorCode.POINTS_DEDUCT_LIMIT,
+                        "最多可用 " + maxPoints + " 积分（不超过订单金额的 20%）");
+            }
+            pointsDeducted = usePoints;
+            pointsAmount = new BigDecimal(usePoints).divide(new BigDecimal("100"), 2,
+                    java.math.RoundingMode.HALF_UP);
+        }
+        discount = discount.add(pointsAmount);
         order.setDiscountAmount(discount);
-        order.setPayAmount(total.subtract(discount));
+        order.setPointsDeducted(pointsDeducted);
+        order.setPointsAmount(pointsAmount);
+        order.setPayAmount(afterCoupon.subtract(pointsAmount));
 
         ordersMapper.insert(order);
+
+        // 订单 id 有了，再真正扣积分并关联流水；失败则整个下单事务回滚
+        if (pointsDeducted > 0 && !memberService.usePoints(request.getUserId(), order.getId(), pointsDeducted)) {
+            throw new BusinessException(ErrorCode.POINTS_NOT_ENOUGH);
+        }
 
         // 订单 id 生成后，正式核销券并绑定订单号
         if (request.getUserCouponId() != null) {
@@ -162,6 +188,17 @@ public class OrderServiceImpl implements OrderService {
             orderItemMapper.insert(item);
         }
         return buildDetail(order.getId());
+    }
+
+    /** 积分数量归一化：null/负数按 0，必须是 100 的整数倍（100 积分 = 1 元） */
+    private int normalizeUsePoints(Integer raw) {
+        if (raw == null || raw <= 0) {
+            return 0;
+        }
+        if (raw % 100 != 0) {
+            throw new BusinessException(ErrorCode.POINTS_DEDUCT_LIMIT, "积分需按 100 的整数倍使用");
+        }
+        return raw;
     }
 
     /**
@@ -351,6 +388,7 @@ public class OrderServiceImpl implements OrderService {
                         "「" + group.getName() + "」请在商品规格中选择");
             }
         }
+        validateOptionCompatibility(options, groupCache);
         options.sort(Comparator
                 .comparingInt((SpecOption o) -> {
                     SpecGroup g = groupCache.get(o.getGroupId());
@@ -358,6 +396,40 @@ public class OrderServiceImpl implements OrderService {
                 })
                 .thenComparingInt(o -> o.getSort() == null ? 0 : o.getSort()));
         return options;
+    }
+
+    /**
+     * 跨组互斥校验：同组只能选一项已在上面校验，这里处理组与组之间的语义冲突。
+     * 按「选项名称」判断而非硬编码 ID——ID 会随数据重建变化，名称才是业务语义。
+     * 规则：
+     * - 温度「热」与冰量「正常冰/少冰/去冰」冲突（热的饮品不可能加冰）
+     * - 温度「冰」与冰量「去冰」冲突（点冰饮又说去冰，语义矛盾）
+     */
+    private void validateOptionCompatibility(List<SpecOption> options, Map<Long, SpecGroup> groupCache) {
+        String temperature = null;
+        String iceLevel = null;
+        for (SpecOption o : options) {
+            SpecGroup g = groupCache.get(o.getGroupId());
+            String groupName = g == null ? "" : g.getName();
+            if (groupName.contains("温度")) {
+                temperature = o.getName();
+            } else if (groupName.contains("冰量")) {
+                iceLevel = o.getName();
+            }
+        }
+        if (temperature == null || iceLevel == null) {
+            return;
+        }
+        // 热饮不能加冰，但「去冰」是合理的（热饮本来就无冰）
+        boolean addsIce = iceLevel.contains("冰") && !iceLevel.contains("去冰");
+        if (temperature.contains("热") && addsIce) {
+            throw new BusinessException(ErrorCode.SPEC_OPTION_INVALID,
+                    "「热」不能同时选择「" + iceLevel + "」，请调整温度或冰量");
+        }
+        if (temperature.contains("冰") && iceLevel.contains("去冰")) {
+            throw new BusinessException(ErrorCode.SPEC_OPTION_INVALID,
+                    "「冰」与「去冰」不能同时选择，请调整温度或冰量");
+        }
     }
 
     private String buildSkuSpec(ProductSku sku) {
@@ -495,6 +567,7 @@ public class OrderServiceImpl implements OrderService {
         }
         if (order.getStatus() == ORDER_PENDING_PAY) {
             releaseSkuStock(order);
+            refundIfNeeded(order); // 退回下单时锁定的积分（此时还没有储值支付）
             return markCancelled(order);
         }
         // 标品支付后直接是「待取餐」：未取货前允许取消，退库存 + 退储值
@@ -556,6 +629,10 @@ public class OrderServiceImpl implements OrderService {
     private void refundIfNeeded(Orders order) {
         if (order.getBalancePaid() != null && order.getBalancePaid().compareTo(BigDecimal.ZERO) > 0) {
             balanceService.refund(order.getUserId(), order.getId(), order.getBalancePaid());
+        }
+        // 积分抵扣回退：订单取消时把下单锁定的积分退回
+        if (order.getPointsDeducted() != null && order.getPointsDeducted() > 0) {
+            memberService.refundPoints(order.getUserId(), order.getId(), order.getPointsDeducted());
         }
     }
 

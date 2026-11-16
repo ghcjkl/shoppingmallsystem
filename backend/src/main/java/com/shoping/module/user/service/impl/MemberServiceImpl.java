@@ -107,6 +107,31 @@ public class MemberServiceImpl implements MemberService {
                 .orderByDesc(MemberPointRecord::getId));
     }
 
+    @Override
+    @Transactional
+    public boolean usePoints(Long userId, Long orderId, int points) {
+        if (points <= 0) {
+            return true; // 0 积分视为没用积分，直接成功
+        }
+        // 原子扣减：WHERE points >= n 保证并发下不会把同一批积分用两次
+        if (memberMapper.deductPoints(userId, points) == 0) {
+            return false;
+        }
+        // 流水记负积分，growth 不变——成长值只由消费/充值决定，抵扣不影响等级
+        insertRecord(userId, 3, -points, 0L, orderId, "积分抵扣");
+        return true;
+    }
+
+    @Override
+    @Transactional
+    public void refundPoints(Long userId, Long orderId, int points) {
+        if (points <= 0) {
+            return;
+        }
+        memberMapper.increasePoints(userId, points);
+        insertRecord(userId, 6, points, 0L, orderId, "积分抵扣回退");
+    }
+
     private int levelFor(long growth) {
         int level = 1;
         for (int i = 1; i < LEVEL_GROWTH.length; i++) {

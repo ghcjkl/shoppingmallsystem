@@ -57,6 +57,24 @@
           </div>
         </el-card>
 
+        <!-- 积分抵扣 -->
+        <el-card shadow="never" class="block" v-if="maxUsablePoints > 0">
+          <template #header><b>积分抵扣</b></template>
+          <div class="points-line">
+            <span>可用积分 {{ app.points || 0 }}，本单最多用 {{ maxUsablePoints }} 积分（抵 ¥{{ fmtMoney(maxUsablePoints / 100) }}）</span>
+          </div>
+          <el-input-number
+            v-model="usePoints"
+            :min="0"
+            :max="maxUsablePoints"
+            :step="100"
+            size="small"
+          />
+          <div class="coupon-tip" v-if="usePoints > 0">
+            已用 {{ usePoints }} 积分，抵扣 ¥{{ fmtMoney(pointsAmount) }}
+          </div>
+        </el-card>
+
         <!-- 支付方式 -->
         <el-card shadow="never" class="block">
           <template #header><b>支付方式</b></template>
@@ -81,7 +99,7 @@
           :loading="submitting"
           @click="submit"
         >
-          提交订单并支付 ¥{{ fmtMoney(payableAmount) }}
+          提交订单并支付 ¥{{ fmtMoney(finalPayable) }}
         </el-button>
       </div>
     </template>
@@ -135,6 +153,7 @@ const resultVisible = ref(false)
 const paidOrders = ref([])
 const myCoupons = ref([])
 const selectedCouponId = ref(null)
+const usePoints = ref(0) // 本单使用的积分（100 的整数倍），只作用于金额最大的那一笔订单
 
 const totalBalance = computed(() =>
   Number(balance.value?.principal || 0) + Number(balance.value?.gift || 0)
@@ -176,6 +195,15 @@ const couponDiscount = computed(() => {
 const payableAmount = computed(() =>
   Math.max(0, cart.totalAmount - couponDiscount.value)
 )
+
+// 积分抵扣：100 积分 = 1 元，最多抵券后金额的 20%，且不超过持有积分；取整到 100 的倍数
+const maxUsablePoints = computed(() => {
+  const byLimit = Math.floor(payableAmount.value * 0.2) * 100
+  const byBalance = Math.floor(Number(app.points || 0) / 100) * 100
+  return Math.max(0, Math.min(byLimit, byBalance))
+})
+const pointsAmount = computed(() => Number(usePoints.value || 0) / 100)
+const finalPayable = computed(() => Math.max(0, payableAmount.value - pointsAmount.value))
 
 const couponLabel = (c) => {
   if (c.type === 2) return `${c.name}（${Math.round(c.amount * 10)}折）`
@@ -220,9 +248,17 @@ const submit = async () => {
       return
     }
 
+    // 积分只能作用于单笔订单：分配给商品金额最大的那笔，且按该单金额重算上限
+    const groupAmounts = groups.map((g) =>
+      g.items.reduce((s, i) => s + Number(i.unitPrice || 0) * Number(i.quantity || 0), 0))
+    const pointsTarget = usePoints.value > 0
+      ? groupAmounts.indexOf(Math.max(...groupAmounts))
+      : -1
+
     // 按类型分别下单（后端单订单仅支持一种类型）
     const created = []
-    for (const g of groups) {
+    for (let gi = 0; gi < groups.length; gi++) {
+      const g = groups[gi]
       // 券只绑定到范围匹配的那一单
       const useCoupon = selectedCoupon.value
         && (!selectedCoupon.value.scope || selectedCoupon.value.scope === 0
@@ -233,6 +269,7 @@ const submit = async () => {
         orderType: g.orderType,
         remark: remark.value || undefined,
         userCouponId: useCoupon ? selectedCouponId.value : undefined,
+        usePoints: gi === pointsTarget ? usePoints.value : undefined,
         items: g.items
       })
       created.push(order)
@@ -260,6 +297,8 @@ const goOrders = () => {
 }
 
 onMounted(async () => {
+  // 刷新登录用户（含最新积分），否则 maxUsablePoints 用的是旧值
+  await app.loadUser()
   try {
     balance.value = await getBalance(app.userId)
   } catch (e) {
@@ -338,6 +377,12 @@ onMounted(async () => {
 
 .pay-types .el-radio {
   margin-right: 0;
+}
+
+.points-line {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
 }
 
 .balance-line {

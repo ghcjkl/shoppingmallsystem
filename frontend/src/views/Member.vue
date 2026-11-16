@@ -63,7 +63,7 @@
         </div>
       </template>
       <div class="point-note">
-        <span class="note-main">积分仅累计，用于等级评定，暂不支持抵扣或兑换</span>
+        <span class="note-main">100 积分可抵扣 ¥1，结算页可使用；抵扣不超过订单金额的 20%</span>
         <span class="note-sub">成长值满 500 / 1500 / 3000 / 6000 依次升至 V2 / V3 / V4 / V5</span>
       </div>
       <div v-if="pointRecords.length" class="point-list">
@@ -259,7 +259,7 @@ const receivedIds = computed(() => coupons.value.map((c) => c.couponId))
 
 const scopeText = (s) => ({ 0: '全场通用', 1: '标品零食', 2: '现制饮品' }[s] || '—')
 const txTypeText = (t) => TX_TYPE[t] || '—'
-const pointTypeText = (t) => ({ 1: '消费得积分', 2: '充值得积分', 3: '积分抵扣', 4: '人工调整', 5: '退款扣回积分' }[t] || '—')
+const pointTypeText = (t) => ({ 1: '消费得积分', 2: '充值得积分', 3: '积分抵扣', 4: '人工调整', 5: '退款扣回积分', 6: '积分抵扣回退' }[t] || '—')
 const signed = (v) => {
   const n = Number(v || 0)
   return (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n)

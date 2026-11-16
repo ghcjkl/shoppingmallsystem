@@ -37,6 +37,8 @@ public enum ErrorCode {
     OLD_PASSWORD_WRONG(11017, "原密码错误"),
     REFRESH_TOKEN_INVALID(11018, "刷新令牌无效或已过期"),
     MEMBER_NOT_FOUND(11002, "会员账户不存在"),
+    POINTS_NOT_ENOUGH(11022, "积分不足"),
+    POINTS_DEDUCT_LIMIT(11023, "积分抵扣超过本单上限"),
     BALANCE_ACCOUNT_NOT_FOUND(11003, "储值账户不存在"),
     BALANCE_NOT_ENOUGH(11004, "储值余额不足"),
     COUPON_NOT_FOUND(11005, "优惠券不存在"),

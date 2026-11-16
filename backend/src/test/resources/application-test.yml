@@ -1,0 +1,25 @@
+# 集成测试专用配置：独立测试库 + 关闭缓存，绝不碰开发库 shoping
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/shoping_test?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+
+app:
+  # 关缓存：测试直接读数据库，避免 Redis 未启动/熔断等待干扰断言
+  cache:
+    enabled: false
+  upload:
+    dir: ./target/test-uploads
+    url-prefix: /uploads
+    max-size-mb: 5
+
+# 测试账号由初始化器自动建（admin / user），这里保持开启
+demo:
+  seed-enabled: true
+
+logging:
+  level:
+    root: warn
+    com.shoping: info

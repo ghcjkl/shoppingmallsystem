@@ -68,6 +68,12 @@ public class Orders implements Serializable {
     /** 排队号（现制） */
     private Integer queueNo;
 
+    /** 本单使用的积分数量 */
+    private Integer pointsDeducted;
+
+    /** 积分抵扣的金额（100 积分 = 1 元） */
+    private BigDecimal pointsAmount;
+
     /** 备注（少冰/不要吸管等） */
     private String remark;
 

@@ -24,6 +24,8 @@ public class OrderVO {
     private BigDecimal cashPaid;
     private String pickupCode;
     private Integer queueNo;
+    private Integer pointsDeducted;
+    private BigDecimal pointsAmount;
     private String remark;
     private LocalDateTime payTime;
     private LocalDateTime finishTime;
@@ -49,6 +51,8 @@ public class OrderVO {
         vo.setCashPaid(order.getCashPaid());
         vo.setPickupCode(order.getPickupCode());
         vo.setQueueNo(order.getQueueNo());
+        vo.setPointsDeducted(order.getPointsDeducted());
+        vo.setPointsAmount(order.getPointsAmount());
         vo.setRemark(order.getRemark());
         vo.setPayTime(order.getPayTime());
         vo.setFinishTime(order.getFinishTime());

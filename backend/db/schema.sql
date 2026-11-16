@@ -203,7 +203,7 @@ CREATE TABLE IF NOT EXISTS member (
 CREATE TABLE IF NOT EXISTS member_point_record (
     id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
     user_id     BIGINT       NOT NULL COMMENT '用户ID',
-    type        TINYINT      NOT NULL COMMENT '类型：1消费得积分 2充值得积分 3积分抵扣 4人工调整',
+    type        TINYINT      NOT NULL COMMENT '类型：1消费得积分 2充值得积分 3积分抵扣 4人工调整 5退款扣回 6积分抵扣回退',
     points      INT          NOT NULL DEFAULT 0 COMMENT '积分变动（正加负减）',
     growth      BIGINT       NOT NULL DEFAULT 0 COMMENT '成长值变动',
     order_id    BIGINT       NULL COMMENT '关联订单ID',
@@ -310,6 +310,8 @@ CREATE TABLE IF NOT EXISTS orders (
     cash_paid       DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '线上/现金支付金额',
     pickup_code     VARCHAR(16)   NULL COMMENT '取餐码',
     queue_no        INT           NULL COMMENT '排队号（现制）',
+    points_deducted INT           NOT NULL DEFAULT 0 COMMENT '本单使用的积分数量',
+    points_amount   DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '积分抵扣的金额（100积分=1元）',
     remark          VARCHAR(255)  NULL COMMENT '备注（少冰/不要吸管等）',
     pay_time        DATETIME      NULL COMMENT '支付时间',
     finish_time     DATETIME      NULL COMMENT '完成时间',

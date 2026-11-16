@@ -62,8 +62,9 @@
               v-for="o in g.options"
               :key="o.id"
               class="ing-chip"
-              :class="{ active: selectedSpecMap[g.id] === o.id }"
-              @click="selectedSpecMap[g.id] = o.id"
+              :class="{ active: selectedSpecMap[g.id] === o.id, disabled: isOptionDisabled(g, o) }"
+              :title="isOptionDisabled(g, o) ? optionConflictReason(g, o) : ''"
+              @click="pickSpecOption(g, o)"
             >
               <span>{{ o.name }}</span>
               <span v-if="Number(o.priceDelta || 0) > 0" class="ing-price">+¥{{ fmtMoney(o.priceDelta) }}</span>
@@ -213,6 +214,38 @@ const selectedSpecOptions = computed(() => {
   }
   return out
 })
+
+// 制作选项跨组互斥（与后端 resolveMakeOptions 规则一致）：
+// 温度「热」不能配冰量；温度「冰」不能配「去冰」。按选项名判断，不依赖 ID。
+const isHot = () => makeGroups.value.some((g) =>
+  g.name.includes('温度') && (g.options || []).find((x) => x.id === selectedSpecMap.value[g.id])?.name?.includes('热'))
+const isIced = () => makeGroups.value.some((g) =>
+  g.name.includes('温度') && (g.options || []).find((x) => x.id === selectedSpecMap.value[g.id])?.name?.includes('冰'))
+const optionConflictReason = (g, o) => {
+  if (g.name.includes('冰量')) {
+    // 热饮不能加冰，但「去冰」是合理的（热饮本来就无冰）
+    const addsIce = o.name.includes('冰') && !o.name.includes('去冰')
+    if (isHot() && addsIce) return '「热」不能加冰，请先改温度'
+    if (isIced() && o.name.includes('去冰')) return '已选「冰」，不能再选「去冰」'
+  }
+  if (g.name.includes('温度')) {
+    const ice = makeGroups.value.find((x) => x.name.includes('冰量'))
+    const iceName = (ice?.options || []).find((x) => x.id === selectedSpecMap.value[ice.id])?.name || ''
+    const iceAdds = iceName.includes('冰') && !iceName.includes('去冰')
+    if (o.name.includes('热') && iceAdds) return '当前冰量为「' + iceName + '」，请先改冰量'
+    if (o.name.includes('冰') && iceName.includes('去冰')) return '当前冰量为「去冰」，请先改冰量'
+  }
+  return ''
+}
+const isOptionDisabled = (g, o) => !!optionConflictReason(g, o)
+const pickSpecOption = (g, o) => {
+  const reason = optionConflictReason(g, o)
+  if (reason) {
+    ElMessage.warning(reason)
+    return
+  }
+  selectedSpecMap.value[g.id] = o.id
+}
 
 const selectedSku = computed(() => skus.value.find((s) => s.id === selectedSkuId.value))
 
@@ -511,6 +544,12 @@ onMounted(async () => {
   border-color: var(--accent);
   background: #eef3ff;
   font-weight: 600;
+}
+
+.ing-chip.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  text-decoration: line-through;
 }
 
 .sku-chip.empty {

@@ -162,6 +162,10 @@ public class AfterSaleServiceImpl implements AfterSaleService {
         if (order != null && needRestock(afterSale, request)) {
             restock(afterSale, order);
         }
+        // 若该订单用了积分抵扣：把下单时锁定的积分原额退回（与 onRefund 扣回的奖励积分互不影响）
+        if (order != null && order.getPointsDeducted() != null && order.getPointsDeducted() > 0) {
+            memberService.refundPoints(afterSale.getUserId(), afterSale.getOrderId(), order.getPointsDeducted());
+        }
         if (refund != null && refund.compareTo(BigDecimal.ZERO) > 0 && order != null) {
             // 退款金额对应的会员积分 / 成长值一并扣回
             memberService.onRefund(afterSale.getUserId(), afterSale.getOrderId(), refund);

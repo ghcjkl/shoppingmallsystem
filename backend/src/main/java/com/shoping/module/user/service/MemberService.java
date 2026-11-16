@@ -28,4 +28,15 @@ public interface MemberService {
 
     /** 积分流水明细 */
     List<MemberPointRecord> pointRecords(Long userId);
+
+    /**
+     * 积分抵扣下单：原子扣减积分并写 type=3 负数流水。
+     * @return 是否扣减成功（false 表示积分不足）
+     */
+    boolean usePoints(Long userId, Long orderId, int points);
+
+    /**
+     * 积分抵扣回退（订单取消 / 售后退款时调用）：原子回加积分并写 type=6 正数流水。
+     */
+    void refundPoints(Long userId, Long orderId, int points);
 }

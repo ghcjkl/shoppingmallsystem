@@ -20,7 +20,7 @@ public class MemberPointRecord implements Serializable {
 
     private Long userId;
 
-    /** 类型：1 消费得积分，2 充值得积分，3 积分抵扣，4 人工调整，5 退款扣回 */
+    /** 类型：1 消费得积分，2 充值得积分，3 积分抵扣，4 人工调整，5 退款扣回，6 积分抵扣回退 */
     private Integer type;
 
     /** 积分变动（正加负减） */

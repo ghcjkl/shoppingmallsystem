@@ -26,6 +26,9 @@ public class OrderCreateRequest {
     /** 使用的用户优惠券 ID（user_coupon.id），可为空 */
     private Long userCouponId;
 
+    /** 本单要使用的积分数量（100 积分 = 1 元，服务端校验上限与持有量），可为空 */
+    private Integer usePoints;
+
     @Valid
     @NotEmpty(message = "订单明细不能为空")
     private List<OrderItemRequest> items;
