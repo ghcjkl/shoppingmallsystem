@@ -46,12 +46,10 @@
 
 <script setup>
 import { defineComponent, h, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElButton, ElImage, ElMessageBox } from 'element-plus'
 import { useCartStore } from '../stores/cart'
 import { fmtMoney } from '../utils/format'
 
-const router = useRouter()
 const cart = useCartStore()
 
 // 购物车行组件（内联定义，便于复用增减逻辑）

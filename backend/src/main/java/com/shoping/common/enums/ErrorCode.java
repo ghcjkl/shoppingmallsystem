@@ -16,7 +16,6 @@ public enum ErrorCode {
 
     // 业务错误码 10000+
     PRODUCT_NOT_FOUND(10001, "商品不存在"),
-    PRODUCT_SOLD_OUT(10002, "商品已售罄"),
     SKU_NOT_FOUND(10003, "商品规格不存在"),
     STOCK_NOT_ENOUGH(10004, "库存不足"),
     MATERIAL_NOT_FOUND(10005, "原料不存在"),
@@ -36,10 +35,8 @@ public enum ErrorCode {
     LOGIN_LOCKED(11016, "登录失败次数过多，请稍后再试"),
     OLD_PASSWORD_WRONG(11017, "原密码错误"),
     REFRESH_TOKEN_INVALID(11018, "刷新令牌无效或已过期"),
-    MEMBER_NOT_FOUND(11002, "会员账户不存在"),
     POINTS_NOT_ENOUGH(11022, "积分不足"),
     POINTS_DEDUCT_LIMIT(11023, "积分抵扣超过本单上限"),
-    BALANCE_ACCOUNT_NOT_FOUND(11003, "储值账户不存在"),
     BALANCE_NOT_ENOUGH(11004, "储值余额不足"),
     COUPON_NOT_FOUND(11005, "优惠券不存在"),
     COUPON_NOT_AVAILABLE(11006, "优惠券不可用"),

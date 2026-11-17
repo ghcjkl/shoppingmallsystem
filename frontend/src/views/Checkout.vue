@@ -40,7 +40,6 @@
             placeholder="选择优惠券"
             clearable
             style="width: 100%"
-            @change="onCouponChange"
           >
             <el-option
               v-for="c in availableCoupons"
@@ -209,10 +208,6 @@ const couponLabel = (c) => {
   if (c.type === 2) return `${c.name}（${Math.round(c.amount * 10)}折）`
   const th = Number(c.threshold) > 0 ? `满${c.threshold}减` : '立减'
   return `${c.name}（${th}${c.amount}）`
-}
-
-const onCouponChange = () => {
-  /* 选中券变化时无需额外处理，金额联动已由 computed 完成 */
 }
 
 const ingredientText = (item) => {

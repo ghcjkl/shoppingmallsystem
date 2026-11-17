@@ -221,7 +221,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getBalance, recharge, getTransactions, getUserCoupons, getCouponTemplates, receiveCoupon, getPointRecords, getRechargeRules } from '../api/user'
 import { getAfterSales } from '../api/aftersale'
@@ -230,7 +229,6 @@ import { useAuthStore } from '../stores/auth'
 import { AFTER_SALE_STATUS, AFTER_SALE_TYPE, TX_TYPE } from '../utils/dict'
 import { fmtMoney, fmtTime } from '../utils/format'
 
-const router = useRouter()
 const app = useAppStore()
 const auth = useAuthStore()
 

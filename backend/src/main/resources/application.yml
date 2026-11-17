@@ -61,7 +61,6 @@ jwt:
   refresh-expire-days: 14
 
 mybatis-plus:
-  mapper-locations: classpath*:/mapper/**/*.xml
   type-aliases-package: com.shoping.module.*.entity
   configuration:
     map-underscore-to-camel-case: true
@@ -83,7 +82,3 @@ logging:
     com.shoping: info
     # 想看 SQL 时把 next 行改成 debug（配合 Slf4jImpl）
     com.shoping.module: info
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
